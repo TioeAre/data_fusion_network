@@ -132,16 +132,18 @@ class FCN8s(nn.Module):
             h2 = self.liner3(h2)
             # h2 = self.softmax(h2)
             h2 = torch.sigmoid(h2)
-            h2 = torch.reshape(h2,((100,1,24)))
+            h2 = torch.reshape(h2,((100,4,6)))
 
         if n == 15:
             mask1 = (h2[:,:,:])
-            mask2 = torch.full(mask1.shape, 0.5)
+            mask2 = torch.full(mask1.shape, 0.5).cuda() # to(torch.device("cuda"))
+            # mask2 = mask2.round(mask2)
             mask1 = ((mask1[:,:,0:3] > mask2[:,:,0:3]) & (mask1[:,:,3:6] <= mask2[:,:,3:6]))
             h[:,:,0:3] = h[:,:,0:3] * mask1
             h = h.view(h.size(0), -1)
             h = self.liner1(h)
             h = torch.reshape(h, (100,1,15))
+            h2 = torch.reshape(h2,((100,1,24)))
             h = torch.cat((h, h2), dim = 2)
             # h = h.view(h.size(0), -1)
             # h = self.liner(h)
