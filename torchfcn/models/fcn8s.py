@@ -85,8 +85,9 @@ class FCN8s(nn.Module):
             self.liner = nn.Linear(64, 24, device=0)
         else:
             self.liner = nn.Linear(40, 12, device=0)
-        self.liner3 = nn.Linear(15, 9, device=0)
+        self.liner3 = nn.Linear(15, 6, device=0)
         self.liner4 = nn.Linear(34, 15, device=0)
+        # self.softmax = torch.nn.functional.softmax(dim=1)
         self._initialize_weights()
 
     def _initialize_weights(self):
@@ -110,23 +111,18 @@ class FCN8s(nn.Module):
         h = self.conv1_1(h)
         h = self.conv1_2(h)
         # h = self.pool1(h)
-
         h = self.conv2_1(h)
         h = self.conv2_2(h)
         # h = self.pool2(h)
-
         h = self.relu3_3(self.conv3_3(h))
-
         h = self.score_fr(h)
         h = self.score_pool3(h)
-
         h = self.upscore2(h)
-
         h = self.conv4_1(h)
         h = self.liner4(h)
 
         if n == 15:
-            h2 = self.conv1_1(h2)
+            h2 = self.conv1_1(h2) # 100*4*15
             h2 = self.conv1_2(h2)
             h2 = self.conv2_1(h2)
             h2 = self.conv2_2(h2)
@@ -134,12 +130,14 @@ class FCN8s(nn.Module):
             h2 = self.relu4_1(self.conv4_2(h2))
             h2 = self.conv4_3(h2)
             h2 = self.liner3(h2)
-            h2[:,:,:] = torch.sigmoid(h2[:,:,:])
-            h2 = torch.reshape(h2,((100,1,36)))
+            # h2 = self.softmax(h2)
+            h2 = torch.sigmoid(h2)
+            h2 = torch.reshape(h2,((100,1,24)))
 
         if n == 15:
             mask1 = (h2[:,:,:])
-            mask1 = ((mask1[:,:,0:3] > torch.zeros_like(mask1)[:,:,0:3]) & (mask1[:,:,3:6] <= torch.zeros_like(mask1)[:,:,3:6]))
+            mask2 = torch.full(mask1.shape, 0.5)
+            mask1 = ((mask1[:,:,0:3] > mask2[:,:,0:3]) & (mask1[:,:,3:6] <= mask2[:,:,3:6]))
             h[:,:,0:3] = h[:,:,0:3] * mask1
             h = h.view(h.size(0), -1)
             h = self.liner1(h)
@@ -151,7 +149,7 @@ class FCN8s(nn.Module):
             h = h.view(h.size(0), -1)
             h = self.liner(h)
         if n == 15:
-            h = torch.reshape(h, (100,1,51))
+            h = torch.reshape(h, (100,1,39))
             # h[:,:,6:15] = torch.sigmoid(h[:,:,6:15])
             h[:,:,6:15] = torch.where(h[:,:,6:15] > 0, torch.tensor(1), torch.tensor(0)).float()
             # h[:,:,6:15] = torch.round(h[:,:,6:15])

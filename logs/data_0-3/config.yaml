@@ -1,0 +1,7 @@
+gpu: 0
+lr: 5.0e-06
+max_iteration: 40000
+model: FCN8s
+momentum: 0.5
+out: /root/data_fusion_fcn/logs/20230615_095959.527407
+weight_decay: 0.0005

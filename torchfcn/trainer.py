@@ -21,16 +21,16 @@ from typing import Any
 n = 15
 
 def loss_func(input, target, weight=None, size_average=True):
-    input2 = input[:,:,:,15:51]
-    input2 = torch.reshape(input2, ((1,100,4,9)))
+    input2 = input[:,:,:,15:39]
+    input2 = torch.reshape(input2, ((1,100,4,6)))
     input = input[:,:,:,0:15]
-    a = 0.7
+    a = 0
     mse_loss = torch.nn.MSELoss()
     bce_loss = nn.BCELoss(reduction = 'sum')
     input1 = input[:,:,:,6:15]
     target1 = target[:,:,:,6:15]
     if n == 15:
-        loss2 = bce_loss(input2[:,:,:,0:9], torch.round(target[:,:,:,6:15]).float())
+        loss2 = bce_loss(input2[:,:,:,0:6], torch.round(target[:,:,:,6:12]).float())
 
     # mask1 = (input[:,:,:,6:12])
     # mask1 = ((mask1[:,:,:,0:3] > torch.zeros_like(mask1)[:,:,:,0:3]) & (mask1[:,:,:,3:6] <= torch.zeros_like(mask1)[:,:,:,3:6]))
@@ -125,7 +125,7 @@ class Trainer(object):
             data1 = torch.reshape(data, (100,4,n))
             with torch.no_grad():
                 score = self.model(data1)
-                score = torch.reshape(score, ((1,100,1,51)))
+                score = torch.reshape(score, ((1,100,1,39)))
             loss = loss_func(score, target,
                                    size_average=self.size_average)
             loss_data = loss.data.item()
@@ -194,7 +194,7 @@ class Trainer(object):
             self.optim.zero_grad()
             data1 = torch.reshape(data, (100,4,n))
             score = self.model(data1)
-            score = torch.reshape(score, ((1,100,1,51)))
+            score = torch.reshape(score, ((1,100,1,39)))
 
             loss = loss_func(score, target,
                                    size_average=self.size_average)
