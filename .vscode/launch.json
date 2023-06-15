@@ -1,0 +1,11 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+          "name": "debug",
+          "request": "launch",
+          "program": "/home/tioeare/project/FASTLAB/network/data_fusion_fcn/main.py",
+          "type": "python"
+      }
+    ]
+}
