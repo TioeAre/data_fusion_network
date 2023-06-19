@@ -21,16 +21,15 @@ from typing import Any
 n = 15
 
 def loss_func(input, target, weight=None, size_average=True):
-    input2 = input[:,:,:,15:39]
+    input2 = input[:,:,:,3:27]
     input2 = torch.reshape(input2, ((1,100,4,6)))
-    input = input[:,:,:,0:15]
-    a = 0
+    input = input[:,:,:,0:3]
+    a = 0.7
     mse_loss = torch.nn.MSELoss()
     bce_loss = nn.BCELoss(reduction = 'sum')
-    input1 = input[:,:,:,6:15]
-    target1 = target[:,:,:,6:15]
+    target1 = target[:,:,:,6:12]
     if n == 15:
-        loss2 = bce_loss(input2[:,:,:,0:6], torch.round(target[:,:,:,6:12]).float())
+        loss2 = bce_loss(input2[:,:,:,0:6], torch.round(target[:,:,:,6:12]).float()) # torch.abs(input2[:,:,:,0:6]-torch.round(target[:,:,:,6:12])).sum()
 
     # mask1 = (input[:,:,:,6:12])
     # mask1 = ((mask1[:,:,:,0:3] > torch.zeros_like(mask1)[:,:,:,0:3]) & (mask1[:,:,:,3:6] <= torch.zeros_like(mask1)[:,:,:,3:6]))
@@ -38,7 +37,11 @@ def loss_func(input, target, weight=None, size_average=True):
     mask2 = ((mask2[:,:,:,0:3] > torch.zeros_like(mask2)[:,:,:,0:3]) & (mask2[:,:,:,3:6] <= torch.zeros_like(mask2)[:,:,:,3:6]))
     # input[:,:,:,0:3] = input[:,:,:,0:3] * mask1
     target[:,:,:,0:3] = target[:,:,:,0:3] * mask2
-    target[:,:,0:1,0:3] = torch.reshape(torch.sum(target[:,:,:,0:3]-target[:,:,:,3:6], dim=2)/target.size(2), (1, 100, 1, 3))
+    mask3 = torch.sum(mask2, dim=2)
+    mask3[mask3 == 0] = 1
+    target[:,:,0:1,0:3] = torch.reshape(torch.sum(target[:,:,:,0:3]-target[:,:,:,3:6], dim=2)/mask3, (1, 100, 1, 3))
+    # target[torch.isinf(target)] = 0
+    target2 = target[:,:,:,0:3]
     if n == 3:
         loss1 = mse_loss(input[:,:,:,0:3], target[:,:,:,0:3])
     else:
@@ -122,10 +125,10 @@ class Trainer(object):
             target = target[0:1,0:100,0:4,0:n]
             data = data[0:1,0:100,0:4,0:n]
 
-            data1 = torch.reshape(data, (100,4,n))
+            # data1 = torch.reshape(data, (100,4,n))
             with torch.no_grad():
-                score = self.model(data1)
-                score = torch.reshape(score, ((1,100,1,39)))
+                score = self.model(data)
+                # score = torch.reshape(score, ((1,100,1,27)))
             loss = loss_func(score, target,
                                    size_average=self.size_average)
             loss_data = loss.data.item()
@@ -192,9 +195,9 @@ class Trainer(object):
             data = data[0:1,0:100,0:4,0:n]
             i=i+1
             self.optim.zero_grad()
-            data1 = torch.reshape(data, (100,4,n))
-            score = self.model(data1)
-            score = torch.reshape(score, ((1,100,1,39)))
+            # data1 = torch.reshape(data, (100,4,n))
+            score = self.model(data)
+            # score = torch.reshape(score, ((1,100,1,27)))
 
             loss = loss_func(score, target,
                                    size_average=self.size_average)
@@ -239,5 +242,5 @@ class Trainer(object):
             self.train_epoch()
             if self.iteration >= self.max_iter:
                 break
-        torch.save(self.model.state_dict(),"/root/data_fusion_fcn/model/fcn8s1_1.pth")
-        torch.save(self.model,"/root/data_fusion_fcn/model/fcn8s1_2.pth")
+        torch.save(self.model.state_dict(),"./model/fcn8s3_1.pth")
+        torch.save(self.model,"./model/fcn8s3_2.pth")

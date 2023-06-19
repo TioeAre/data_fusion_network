@@ -1,11 +1,12 @@
 import torch
+from torch import nn
+In = nn.InstanceNorm2d(num_features=3, eps=0, affine=False, track_running_stats=False)
+x = torch.rand(10, 3, 5, 5)*10000
+official_In = In(x)   # 官方代码
 
-original_tensor = torch.tensor([[[1, 1, 1, 1, 0, 0],
-                                 [1, 1, 1, 0, 0, 0]]])
-
-fixed_value = 0.5
-new_tensor = torch.full(original_tensor.shape, fixed_value)
-mask1 = ((original_tensor[:,:,0:3] > new_tensor[:,:,0:3]) & (original_tensor[:,:,3:6] <= new_tensor[:,:,3:6]))
-print(original_tensor)
-print(new_tensor)
-print(mask1)
+x1 = x.reshape(30, -1)  # 对（H,W）计算均值方差
+mean = x1.mean(dim=1).reshape(10, 3, 1, 1)
+std = x1.std(dim=1, unbiased=False).reshape(10, 3, 1, 1)
+my_In = (x - mean)/std
+print(official_In)
+print(my_In)

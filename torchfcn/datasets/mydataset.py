@@ -18,7 +18,7 @@ class fusion(data.Dataset):
         self.split = split
 
         # VOC2011 and others are subset of VOC2012
-        dataset_dir = osp.join('/root/data')
+        dataset_dir = osp.join('/home/tioeare/project/FASTLAB/network/make_pose_dataset/src/make_pose_dataset/scripts/data')
         self.files = collections.defaultdict(list)
         for split in ['train', 'val']:
             train_filenames = [f for f in os.listdir(f'{dataset_dir}/{split}/data') if os.path.isfile(os.path.join(f'{dataset_dir}/{split}/data', f))]

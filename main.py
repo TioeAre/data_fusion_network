@@ -32,7 +32,7 @@ def main():
         '--max-iteration', type=int, default=1000*40, help='max iteration'
     )
     parser.add_argument(
-        '--lr', type=float, default=0.00001, help='learning rate',
+        '--lr', type=float, default=1e-4, help='learning rate',
     )
     parser.add_argument(
         '--weight-decay', type=float, default=0.0005, help='weight decay',

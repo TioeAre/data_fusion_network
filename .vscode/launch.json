@@ -4,7 +4,7 @@
       {
           "name": "debug",
           "request": "launch",
-          "program": "/home/tioeare/project/FASTLAB/network/data_fusion_fcn/main.py",
+          "program": "/home/tioeare/project/FASTLAB/network/data_fusion_network/main.py",
           "type": "python"
       }
     ]

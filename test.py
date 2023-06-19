@@ -15,7 +15,7 @@ from torchfcn.trainer import loss_func
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('model_file', default="/root/data_fusion_fcn/model/fcn8s1_1.pth", help='Model path')
+    parser.add_argument('model_file', default="/root/data_fusion_network/model/fcn8s2_1.pth", help='Model path')
 
     parser.add_argument('-g', '--gpu', type=int, default=0)
     args = parser.parse_args()
@@ -55,9 +55,9 @@ def main():
         torch.no_grad()
         target = target[0:1,0:100,0:4,0:15]
         data = data[0:1,0:100,0:4,0:15]
-        data1 = torch.reshape(data, (100,4,15))
+        data1 = torch.reshape(data, (1,100,4,15))
         score = model(data1)
-        score = torch.reshape(score, ((1,100,1,51)))
+        # score = torch.reshape(score, ((1,100,1,27)))
 
         imgs = data.data.cpu()
         loss = loss_func(score, target)

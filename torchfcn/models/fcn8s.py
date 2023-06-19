@@ -36,41 +36,51 @@ class FCN8s(nn.Module):
             md5='de93e540ec79512f8770033849c8ae89',
         )
 
-    def __init__(self, n_class=4):
+    def __init__(self, n_class=100):
         super(FCN8s, self).__init__()
         # conv1
-        self.conv1_1 = nn.Conv1d(4, 8, 3, padding=1)
+        self.conv1_1 = nn.Conv2d(100, 100, 7, padding=2)
+        self.conv5_1 = nn.Conv2d(100, 100, 4, padding=2)
         self.relu1_1 = nn.PReLU() # inplace=True)
-        self.conv1_2 = nn.Conv1d(8, 8, 3, padding=1)
+        self.conv1_2 = nn.Conv2d(100, 100, 4, padding=1)
+        self.conv5_2 = nn.Conv2d(100, 100, 4, padding=1)
         self.relu1_2 = nn.PReLU() # iinplace=True)
         # self.pool1 = nn.MaxPool1d(2, stride=2, ceil_mode=True)  # 1/2
 
         # conv2
-        self.conv2_1 = nn.Conv1d(8, 16, 3, padding=1)
+        self.conv2_1 = nn.Conv2d(100, 100, 3, padding=1)
+        self.conv6_1 = nn.Conv2d(100, 100, 3, padding=1)
         self.relu2_1 = nn.PReLU() # iinplace=True)
-        self.conv2_2 = nn.Conv1d(16, 32, 3, padding=1)
+        self.conv2_2 = nn.Conv2d(100, 100, 3, padding=1)
+        self.conv6_2 = nn.Conv2d(100, 100, 3, padding=1)
         self.relu2_2 = nn.PReLU() # iinplace=True)
         # self.pool2 = nn.MaxPool1d(2, stride=2, ceil_mode=True)  # 1/4
 
-        self.conv3_3 = nn.Conv1d(32, 32, 3, padding=1)
+        self.conv3_3 = nn.Conv2d(100, 100, 3, padding=1)
+        self.conv7_3 = nn.Conv2d(100, 100, 3, padding=1)
         self.relu3_3 = nn.PReLU() # iinplace=True)
+        self.relu7_3 = nn.PReLU() # iinplace=True)
         # self.pool3 = nn.MaxPool1d(2, stride=2, ceil_mode=True)  # 1/8
 
         # conv4
-        self.conv4_1 = nn.Conv1d(n_class, n_class, 3, padding=1)
+        self.conv4_1 = nn.Conv2d(n_class, n_class, 3, padding=1)
 
         self.relu4_1 = nn.PReLU() # iinplace=True)
-        self.conv4_2 = nn.Conv1d(32, 16, 3, padding=1)
-        self.conv4_3 = nn.Conv1d(16, 4, 3, padding=1)
+        self.relu8_1 = nn.PReLU() # iinplace=True)
+        # self.conv4_2 = nn.Conv2d(4096, 1024, 3, padding=1)
+        self.score_fr = nn.Conv2d(100, n_class, 2, padding=1) # 4096
+        self.conv8_2 = nn.Conv2d(100, 100, 3, padding=1)
+        self.conv4_3 = nn.Conv2d(100, 100, 3, padding=1)
+        self.conv8_3 = nn.Conv2d(100, 100, 3, padding=1)
 
-        self.score_fr = nn.Conv1d(32, n_class, 2, padding=1) # 4096
+        # self.score_fr = nn.Conv2d(32, n_class, 2, padding=1) # 4096
 
-        self.score_pool3 = nn.Conv1d(n_class, n_class, 1)
+        self.score_pool3 = nn.Conv2d(n_class, n_class, 1)
         # self.score_pool4 = nn.Conv1d(512, n_class, 1)
 
-        self.upscore2 = nn.ConvTranspose1d(
+        self.upscore2 = nn.ConvTranspose2d(
             n_class, n_class, 4, stride=2, bias=False)
-        self.upscore3 = nn.ConvTranspose1d(
+        self.upscore3 = nn.ConvTranspose2d(
             1, 4, 4, 1, 1, bias=False)
 
         # self.upscore8 = nn.ConvTranspose1d(
@@ -79,20 +89,21 @@ class FCN8s(nn.Module):
         #     n_class, n_class, 4, stride=2, bias=False)
         # self.pool6 = nn.AdaptiveAvgPool1d((1,15))
         if n == 15:
-            self.liner1 = nn.Linear(60, 15, device=0)
+            self.liner1 = nn.Linear(12, 3, device=0)
             self.liner = nn.Linear(60, 60, device=0)
         elif n == 6 :
             self.liner = nn.Linear(64, 24, device=0)
         else:
             self.liner = nn.Linear(40, 12, device=0)
-        self.liner3 = nn.Linear(15, 6, device=0)
-        self.liner4 = nn.Linear(34, 15, device=0)
+        # self.liner3 = nn.Linear(168, 12, device=0)
+        self.liner3 = nn.Linear(96, 12, device=0)
+        self.liner4 = nn.Linear(36, 24, device=0)
         # self.softmax = torch.nn.functional.softmax(dim=1)
         self._initialize_weights()
 
     def _initialize_weights(self):
         for m in self.modules():
-            if isinstance(m, nn.Conv1d) or isinstance(m, nn.ConvTranspose1d):
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
                 nn.init.normal_(m.weight, mean=0.0, std=0.01)
                 if m.bias is not None:
                     m.bias.data.zero_()
@@ -100,13 +111,39 @@ class FCN8s(nn.Module):
                 nn.init.normal_(m.weight, mean=0.0, std=0.01)
                 if m.bias is not None:
                     m.bias.data.zero_()
+            # elif isinstance(m, nn.PReLU):
+            #     nn.init.normal_(m.weight, mean=1.0, std=0.01)
 
     def forward(self, x):
         # x = x[0:1,0:100,0:4,0:15]
-        h = x
+
+        # h = x
+        h = torch.cat((x[:,:,:,0:6], x[:,:,:,12:15]), dim = 3)
+
         if n == 15:
-            h1 = x[:,:,6:15]
-            h2 = x # result 100*4*9
+            h1 = x[:,:,:,6:15]
+            h2 = torch.cat((x[:,:,:,0:3], x[:,:,:,6:12]), dim = 3) # result 100*4*9
+            # h2[:,:,:,0:3] = torch.nn.functional.normalize(h2[:,:,:,0:3], dim=2)
+            h2 = self.conv5_1(h2) # 100*4*15
+            h2 = self.conv5_2(h2)
+            h2 = self.conv6_1(h2)
+            h2 = self.conv6_2(h2)
+            h2 = self.relu7_3(self.conv7_3(h2))
+            h2 = self.conv8_3(h2)
+            h2 = torch.reshape(h2, (100,-1))
+            h2 = self.liner4(h2)
+            h2 = torch.reshape(h2, (1, 100,4,6))
+            # h2 = torch.cat(((h2[:,:,:,0:3] > torch.zeros_like(h2)[:,:,:,0:3]),(h2[:,:,:,3:6] <= torch.zeros_like(h2)[:,:,:,3:6])), dim=3)
+            h2 = torch.nn.functional.sigmoid(h2) # torch.nn.functional.softmax(h2, dim=2)
+            # h2 = torch.reshape(h2,((100,4,6)))
+            mask1 = (h2[:,:,:,:])
+            mask2 = torch.full(mask1.shape, 0.5).cuda() # ((mask1[:,:,:,0:3] > torch.zeros_like(mask1)[:,:,:,0:3]) & (mask1[:,:,:,3:6] <= torch.zeros_like(mask1)[:,:,:,3:6])).cuda() # to(torch.device("cuda"))
+            mask1 = ((mask1[:,:,:,0:3] > mask2[:,:,:,0:3]) & (mask1[:,:,:,3:6] <= mask2[:,:,:,3:6]))
+            # h2 = torch.sigmoid(h2)
+            # mask3 = (h2[:,:,:,0:3] > torch.zeros_like(h2)[:,:,:,0:3]) & (h2[:,:,:,3:6] <= torch.zeros_like(h2)[:,:,:,3:6])
+            h[:,:,:,0:3] = h[:,:,:,0:3] * mask1 # mask3
+
+
         # print(h.shape)
         h = self.conv1_1(h)
         h = self.conv1_2(h)
@@ -118,43 +155,33 @@ class FCN8s(nn.Module):
         h = self.score_fr(h)
         h = self.score_pool3(h)
         h = self.upscore2(h)
-        h = self.conv4_1(h)
-        h = self.liner4(h)
+        # h = self.conv4_1(h)
+
+        h = torch.reshape(h, (h.size(1),h.size(2),h.size(3)))
+        h = torch.reshape(h, (100,-1))
+        h = self.liner3(h)
+        h = torch.reshape(h, (1, 100, 4, 3))
 
         if n == 15:
-            h2 = self.conv1_1(h2) # 100*4*15
-            h2 = self.conv1_2(h2)
-            h2 = self.conv2_1(h2)
-            h2 = self.conv2_2(h2)
-            h2 = self.relu3_3(self.conv3_3(h2))
-            h2 = self.relu4_1(self.conv4_2(h2))
-            h2 = self.conv4_3(h2)
-            h2 = self.liner3(h2)
-            # h2 = self.softmax(h2)
-            h2 = torch.sigmoid(h2)
-            h2 = torch.reshape(h2,((100,4,6)))
 
-        if n == 15:
-            mask1 = (h2[:,:,:])
-            mask2 = torch.full(mask1.shape, 0.5).cuda() # to(torch.device("cuda"))
-            # mask2 = mask2.round(mask2)
-            mask1 = ((mask1[:,:,0:3] > mask2[:,:,0:3]) & (mask1[:,:,3:6] <= mask2[:,:,3:6]))
-            h[:,:,0:3] = h[:,:,0:3] * mask1
-            h = h.view(h.size(0), -1)
+            h = h.contiguous()
+            h = torch.reshape(h, (100,-1))
             h = self.liner1(h)
-            h = torch.reshape(h, (100,1,15))
-            h2 = torch.reshape(h2,((100,1,24)))
-            h = torch.cat((h, h2), dim = 2)
+            h = torch.reshape(h, (1,100,1,3))
+            h2 = torch.reshape(h2,((1,100,1,24)))
+            h = torch.cat((h, h2), dim = 3)
             # h = h.view(h.size(0), -1)
             # h = self.liner(h)
         else:
+            h = h.contiguous()
             h = h.view(h.size(0), -1)
             h = self.liner(h)
         if n == 15:
-            h = torch.reshape(h, (100,1,39))
+            h = torch.reshape(h, (1,100,1,27))
             # h[:,:,6:15] = torch.sigmoid(h[:,:,6:15])
-            h[:,:,6:15] = torch.where(h[:,:,6:15] > 0, torch.tensor(1), torch.tensor(0)).float()
+            # h[:,:,6:15] = torch.where(h[:,:,6:15] > 0.5, torch.tensor(1), torch.tensor(0)).float()
             # h[:,:,6:15] = torch.round(h[:,:,6:15])
+        h = h.contiguous()
         return h
 
     def copy_params_from_fcn16s(self, fcn16s):
